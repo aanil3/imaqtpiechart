@@ -2,9 +2,7 @@ library(shiny)
 library(tidyverse)
 library(spData) # For getting spatial data
 library(sf) # For preserving spatial data
-library(leaflet) # For making maps
 library(DT) # For making fancy tables
-library(dplyr)
 library(scales)
 
 #Load data of all the pro leagues
@@ -20,18 +18,18 @@ loldata <- df %>%
   filter(position != "team") %>%
   
   #get game number for each team
-  group_by(playername) %>%
+  group_by(playername, teamname, position) %>%
   mutate(kda = (sum(kills)+sum(assists))/sum(deaths))%>%
-  mutate(kp = label_percent()((sum(kills)+sum(assists))/sum(teamkills))) %>%
+  mutate(kp = ((sum(kills)+sum(assists))/sum(teamkills))) %>%
   mutate(games_played=n()) %>%
   mutate(ckpm = sum(ckpm)/games_played) %>%
   mutate(dpm = mean(dpm)) %>%
-  mutate(damageshare = mean(damageshare)) %>%
+  mutate(damageshare = label_percent()(mean(damageshare))) %>%
   mutate(vspm = mean(vspm)) %>%
   mutate(cspm = mean(cspm)) %>%
-  mutate_at(vars(kda, ckpm, dpm, damageshare, vspm, cspm), funs(round(., 2)))%>%
+  mutate_at(vars(kda, ckpm, dpm, kp, vspm, cspm), funs(round(., 2)))%>%
   ungroup() %>%
-  summarize(playername, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
+  summarize(playername, teamname, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
 
 ui <- fluidPage(
   #CSS
@@ -49,7 +47,7 @@ ui <- fluidPage(
       "))
   ),
   
-  img(class = "topimg", src = "data/logo2.png"), 
+  img(class = "topimg", src = "logo2.png"), 
   
   h1("Player Tables", class = "title"),
   
@@ -78,7 +76,7 @@ ui <- fluidPage(
 )
 
 server <- function(input, output) {
-  loldata <- distinct(loldata, playername, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
+  loldata <- distinct(loldata, playername, teamname, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
   output$brandBar <- renderPlot( {
     if (input$league != "All") {
       loldata <- distinct(filter(loldata, league == input$league))
@@ -95,7 +93,7 @@ server <- function(input, output) {
   
   # Create data table
   output$table <- renderDataTable({
-    loldata <- distinct(loldata, playername, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
+    loldata <- distinct(loldata, playername, teamname, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
     
     # Filter data based on selected region
     if (input$position != "All") {
