@@ -19,14 +19,9 @@ loldata <- df %>%
   filter((league=="LCS" & date >= "2022-02-05") | (league=="LEC" & date >= "2022-01-14") | (league=="LPL" & date >= "2022-01-10") | (league=="LCK" & date >= "2022-01-12")) %>% 
   filter(position != "team") %>%
   
-  #calculate KDA
-  group_by(playername, position) %>%
-  mutate(kda = (kills+assists)/deaths) %>%
-  mutate(player_name = playername)%>%
-  
   #get game number for each team
   group_by(playername) %>%
-  mutate(kda = (sum(kills)+sum(assists))/sum(deaths)) %>%
+  mutate(kda = (sum(kills)+sum(assists))/sum(deaths))%>%
   mutate(kp = label_percent()((sum(kills)+sum(assists))/sum(teamkills))) %>%
   mutate(games_played=n()) %>%
   mutate(ckpm = sum(ckpm)/games_played) %>%
@@ -34,11 +29,11 @@ loldata <- df %>%
   mutate(damageshare = mean(damageshare)) %>%
   mutate(vspm = mean(vspm)) %>%
   mutate(cspm = mean(cspm)) %>%
+  mutate_at(vars(kda, ckpm, dpm, damageshare, vspm, cspm), funs(round(., 2)))%>%
   ungroup() %>%
-  select(playername, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
+  summarize(playername, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
 
 ui <- fluidPage(
-  
   #CSS
   tags$head(
     tags$style(HTML("
@@ -54,7 +49,7 @@ ui <- fluidPage(
       "))
   ),
   
-  img(class = "topimg", src = "data/logo.png"), 
+  img(class = "topimg", src = "data/logo2.png"), 
   
   h1("Player Tables", class = "title"),
   
@@ -66,22 +61,15 @@ ui <- fluidPage(
                      ),
               column(6,
                      #Position Menu
-                     selectInput("position", "position", levels(loldata$position) %>%
-                                   append("All") %>%
-                                   sort())
-                     )
-              )
+                     selectInput("position", "position", c("All", "top", "jng", "mid", "bot", "sup"))
+              ),
+    )
   ),
   
   fluidRow (
-    
     column(6, class = "bar",
            plotOutput("brandBar")
     ),
-    
-    column(6, class = "map",
-           leafletOutput("map")
-    )
   ),
   
   fluidRow (class = "table",
@@ -93,14 +81,14 @@ server <- function(input, output) {
   loldata <- distinct(loldata, playername, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
   output$brandBar <- renderPlot( {
     if (input$league != "All") {
-      loldata <- filter(loldata, league == input$league)
+      loldata <- distinct(filter(loldata, league == input$league))
     }
     if (input$position != "All") {
-      loldata <- filter(loldata, position == input$position)
+      loldata <- distinct(filter(loldata, position == input$position))
     }
     
     validate (
-      need(nrow(loldata) > 0, "")
+      need(nrow(distinct(loldata)) > 0, "")
     )
     
   })
@@ -111,20 +99,20 @@ server <- function(input, output) {
     
     # Filter data based on selected region
     if (input$position != "All") {
-      loldata <- filter(loldata, position == input$position)
+      loldata <- distinct(filter(loldata, position == input$position))
     }
     
     # Filter data based on selected position
     if (input$league != "All") {
-      loldata <- filter(loldata, league == input$league)
+      loldata <- distinct(filter(loldata, league == input$league))
     }
     
     # Hide table when user has filtered out all data
     validate (
-      need(nrow(loldata) > 0, "")
+      need(nrow(distinct(loldata)) > 0, "")
     )
     
-    loldata[,1:11]
+    distinct(loldata[,1:11])
     
   })
   
