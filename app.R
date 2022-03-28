@@ -27,27 +27,33 @@ loldata <- df %>%
   mutate(damageshare = label_percent()(mean(damageshare))) %>%
   mutate(vspm = mean(vspm)) %>%
   mutate(cspm = mean(cspm)) %>%
+  mutate(golddiffat15 = mean(golddiffat15))%>%
+  mutate(xpdiffat15 = mean(xpdiffat15))%>%
+  mutate(csdiffat15 = mean(csdiffat15))%>%
   mutate_at(vars(kda, ckpm, dpm, kp, vspm, cspm), funs(round(., 2)))%>%
   ungroup() %>%
+  arrange(playername)%>%
   summarize(playername, teamname, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
+  loldata <- unique(loldata)
+  print(loldata)
 
 ui <- fluidPage(
   #CSS
   tags$head(
     tags$style(HTML("
       body { background-color: #f2efe9; }
-      .container-fluid { background-color: #fff; width: 1500px; padding: 60px; }
-      .topimg { width: 120px; display: block; margin: 0px auto 40px auto; }
-      .title { text-align: center; }
-      .toprow { margin: 60px 0px; padding: 30px; background-color: #fae8bb; }
-      .filters { margin: 0px auto; }
+      .container-fluid { background-color: #424242; width: 1500px; padding: 60px; }
+      .topimg { width: 200px; display: block; margin: 0px auto 40px auto; }
+      .title { text-align: center; color: #ffffff;}
+      .toprow { border-radius: 25px; margin: 60px 0px; padding: 15px; background-color: #fae8bb; }
+      .filters { margin: 0px auto; border-radius: 25px; padding: 10px;}
       .shiny-input-container { width:100% !important; }
       .table { padding: 30px; margin-top: 30px; }
       .leaflet-top { z-index:999 !important; }
       "))
   ),
   
-  img(class = "topimg", src = "logo2.png"), 
+  img(class = "topimg", src = "https://i.ibb.co/3Bk7j3B/logo2.png"), 
   
   h1("Player Tables", class = "title"),
   
@@ -66,7 +72,7 @@ ui <- fluidPage(
   
   fluidRow (
     column(6, class = "bar",
-           plotOutput("brandBar")
+           plotOutput("kdaBar")
     ),
   ),
   
@@ -76,13 +82,12 @@ ui <- fluidPage(
 )
 
 server <- function(input, output) {
-  loldata <- distinct(loldata, playername, teamname, league, position, games_played, kda, kp, ckpm, dpm, damageshare, vspm, cspm, golddiffat15, xpdiffat15, csdiffat15)
-  output$brandBar <- renderPlot( {
+  output$kdaBar <- renderPlot( {
     if (input$league != "All") {
-      loldata <- distinct(filter(loldata, league == input$league))
+      loldata <- filter(loldata, league == input$league)
     }
     if (input$position != "All") {
-      loldata <- distinct(filter(loldata, position == input$position))
+      loldata <- filter(loldata, position == input$position)
     }
     
     validate (
