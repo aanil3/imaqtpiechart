@@ -6,7 +6,6 @@ This app currently features a semi-functional UI with a working table and filter
 
 # To do List:
 In the future I would like to improve the UI, work on more visualization and fix the following errors
-- Bar Graph is missing
 - Make KP % (label_percent() not working atm)
 - More graphs and data visualization
 - Potentially use maps to highlights regions (?)
