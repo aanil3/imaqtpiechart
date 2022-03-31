@@ -20,23 +20,26 @@ ui <- fluidPage(
   fluidRow(
     navbarPage("App Title",
                fluid = TRUE,
-               tabPanel("Plot"),
+               tabPanel(
+                 "Plot",
+                 img(class = "topimg", src = "https://i.ibb.co/3Bk7j3B/logo2.png"), 
+                 h1("IMAQTPIECHART", class = "title"),
+                 
+                 fluidRow(class = "toprow",
+                          fluidRow (class = "filters",
+                                    column(6, selectInput("league", "Region", c("All", "LCK", "LCS", "LEC", "LPL"))),
+                                    column(6, selectInput("position", "Position", c("All", "top", "jng", "mid", "bot", "sup")))
+                          )
+                 ),
+                 
+                 fluidRow(column(6, class = "bar", plotOutput("kdaBar"))),
+                 fluidRow (class = "table", dataTableOutput("table"))
+                 ),
                tabPanel("Summary"),
                tabPanel("Table")
     )
   ),
   
-  img(class = "topimg", src = "https://i.ibb.co/3Bk7j3B/logo2.png"), 
-  h1("IMAQTPIECHART", class = "title"),
   
-  fluidRow(class = "toprow",
-           fluidRow (class = "filters",
-                     column(6, selectInput("league", "Region", c("All", "LCK", "LCS", "LEC", "LPL"))),
-                     column(6, selectInput("position", "Position", c("All", "top", "jng", "mid", "bot", "sup")))
-           )
-  ),
-  
-  fluidRow(column(6, class = "bar", plotOutput("kdaBar"))),
-  fluidRow (class = "table", dataTableOutput("table"))
   
 )
