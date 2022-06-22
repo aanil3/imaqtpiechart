@@ -13,3 +13,4 @@ In the future I would like to improve the UI, work on more visualization and fix
 - More graphs and data visualization
 - Sidebar to introduce team and champ based sections
 - Create a prediction model for games
+- Add different stat types for career line graph (Career totals, Career averages, etc.)
