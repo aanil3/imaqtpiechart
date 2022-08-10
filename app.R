@@ -7,14 +7,14 @@ library(gganimate)
 library(shinythemes)
 library(shinydashboard)
 library(shiny)
-library(tidyverse)
-library(spData)
 library(sf)
 library(DT)
 library(scales)
 library(av)
+library(dplyr)
+library(stringr)
 
-loldf <- fread('data/old_data.csv')
+loldf <- fread("data/imaqtpie_DB.csv")
 
 loldata <- loldf %>%
   
@@ -46,16 +46,19 @@ loldata <- loldf %>%
     kills = sum(kills),
     deaths = sum(deaths),
     assists = sum(assists),
+    season = year - 2010,
     year = case_when(
-      split == "Summer" ~ year + 0.5,
-      league == "MSI" ~ year + 0.25,
-      league == "WCS" ~ year + 0.75,
+      league == "IEM" ~ year + 0.2,
+      league == "MSI" ~ year + 0.4,
+      split == "Summer" ~ year + 0.6,
+      league == "WCS" ~ year + 0.8,
       TRUE ~ as.numeric(year)
     )
   ) %>%
   filter(games_played >= 10) %>%
   mutate_at(
     vars(
+      season,
       kda,
       ckpm,
       dpm,
@@ -76,7 +79,7 @@ loldata <- loldf %>%
   arrange(playername) %>%
   summarize(
     playername,
-    year,
+    season,
     split,
     teamname,
     league,
@@ -94,9 +97,13 @@ loldata <- loldf %>%
     csdiffat15,
     kills,
     deaths,
-    assists
+    assists,
+    year
   )
 loldata <- unique(loldata)
+
+loldata$league[loldata$league == "NA LCS"] <- "LCS"
+loldata$league[loldata$league == "EU LCS"] <- "LEC"
 
 kda_df <- loldata %>%
   group_by(playername, league) %>%
@@ -108,7 +115,7 @@ server <- function(input, output) {
   fig.width = 5
   output$kdaBar <- renderPlot({
     if (input$season != "All") {
-      loldata <- filter(loldata, year == input$season)
+      loldata <- filter(loldata, season == input$season)
     }
     if (input$league != "All") {
       loldata <- filter(loldata, league == input$league)
@@ -149,7 +156,7 @@ server <- function(input, output) {
   output$table <- renderDataTable({
     # Filter data based on selected position
     if (input$season != "All") {
-      loldata <- filter(loldata, year == input$season)
+      loldata <- filter(loldata, season == input$season)
     }
     if (input$position != "All") {
       loldata <- filter(loldata, position == input$position)
@@ -174,7 +181,7 @@ server <- function(input, output) {
   
   output$histogram <- renderPlot({
     if (input$season != "All") {
-      loldata <- filter(loldata, year == input$season)
+      loldata <- filter(loldata, season == input$season)
     }
     if (input$league != "All") {
       loldata <- filter(loldata, league == input$league)
@@ -201,8 +208,10 @@ server <- function(input, output) {
       fill = league,
       color = league
     )) +
-      geom_histogram(aes(y = ..density..), alpha = 0.5, bins = 90) +
-      theme_dark(base_size = 9) +
+      geom_histogram(aes(y = ..density..),
+                     alpha = 0.5,
+                     bins = input$bins) +
+      theme_dark(base_size = 15) +
       theme(plot.background = element_rect(fill = "#262626", color = "white")) +
       theme(panel.background = element_rect(fill = "#262626")) +
       labs(title = "Number of players vs KDA bracket",
@@ -221,13 +230,18 @@ server <- function(input, output) {
   })
   
   output$careerKDA <- renderPlot({
-    ggplot(loldata %>% filter(playername == input$playername)) + 
-      geom_line(aes(x=year, y=kills), color = "#35F2BD", size = 1) +
-      geom_line(aes(x=year, y=deaths), color = "red", size = 1) +
-      geom_line(aes(x=year, y=assists), color = "#7A5FD9", size = 1) +
-      geom_point(aes(x=year, y=assists), color = "#7A5FD9", size = 5) +
-      geom_point(aes(x=year, y=deaths), color = "red", size = 5) +
-      geom_point(aes(x=year, y=kills), color = "#35F2BD", size = 5) +
+    tempdata <- loldata %>%
+      filter(playername == input$playername)
+    if (input$kdaHistoryFormat != "All") {
+      tempdata <- filter(tempdata, league == input$kdaHistoryFormat)
+    }
+    ggplot(tempdata) +
+      geom_line(aes(x = year, y = kills), color = "#35F2BD", size = 1) +
+      geom_line(aes(x = year, y = deaths), color = "red", size = 1) +
+      geom_line(aes(x = year, y = assists), color = "#7A5FD9", size = 1) +
+      geom_point(aes(x = year, y = assists), color = "#7A5FD9", size = 5) +
+      geom_point(aes(x = year, y = deaths), color = "red", size = 5) +
+      geom_point(aes(x = year, y = kills), color = "#35F2BD", size = 5) +
       theme_dark(base_size = 15) +
       theme(plot.background = element_rect(fill = "#262626", color = "white")) +
       theme(panel.background = element_rect(fill = "#262626")) +
@@ -235,7 +249,7 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(colour = "#FFFFFF")) +
       theme(axis.text.y = element_text(colour = "#FFFFFF")) +
       theme(axis.title = element_text(colour = "#FFFFFF")) +
-      xlim(2014,2022)
+      xlim(2014, 2023)
   })
   
 }
@@ -281,32 +295,28 @@ ui <- bootstrapPage(title = 'IMAQTPIECHART',
                                   class = "filters",
                                   column(4, selectInput(
                                     "season",
-                                    "Year",
-                                    c(
-                                      "All",
-                                      "2014",
-                                      "2015",
-                                      "2016",
-                                      "2017",
-                                      "2018",
-                                      "2019",
-                                      "2020",
-                                      "2021",
-                                      "2022"
-                                    )
+                                    "Season",
+                                    c("All",
+                                      "4",
+                                      "5",
+                                      "6",
+                                      "7",
+                                      "8",
+                                      "9",
+                                      "10",
+                                      "11",
+                                      "12")
                                   )),
                                   column(4, selectInput(
                                     "split",
                                     "Split",
                                     c("All", "Spring", "Summer")
                                   )),
-                                  column(
-                                    3,
-                                    checkboxInput("playoffs",
-                                                  "Include Playoffs?",
-                                                  FALSE),
-                                    verbatimTextOutput("playoffs")
-                                  ),
+                                  column(4, selectInput(
+                                    "playoffs",
+                                    "Include Playoffs?",
+                                    c("All", "Regular Season", "Playoffs")
+                                  )),
                                 ),
                                 fluidRow (
                                   class = "filters",
@@ -325,14 +335,37 @@ ui <- bootstrapPage(title = 'IMAQTPIECHART',
                               ),
                               fluidRow(column(12, class = "bar", plotOutput("kdaBar"))),
                               fluidRow (class = "table", dataTableOutput("table")),
-                              fluidRow(column(12, class = "bar", plotOutput("histogram"))),
-                              fluidRow(column(12, 
-                                              selectInput(inputId = "playername", 
-                                                          label = "Choose a player", 
-                                                          choices = unique(loldata$playername)), 
-                                              plotOutput("careerKDA")
-                              ))),
-                            
+                              fluidRow(column(
+                                12,
+                                class = "bar",
+                                sliderInput(
+                                  "bins",
+                                  "# Of Bins:",
+                                  min = 10,
+                                  max = 300,
+                                  value = 90
+                                ),
+                                plotOutput("histogram")
+                              )),
+                              fluidRow(class = "toprow",
+                                       column(
+                                         6,
+                                         selectInput(
+                                           inputId = "playername",
+                                           label = "Choose a player",
+                                           choices = unique(loldata$playername)
+                                         )
+                                       ),
+                                       column(
+                                         6, selectInput(
+                                           "kdaHistoryFormat",
+                                           "Formats",
+                                           c("All", "League", "Tournament")
+                                         )
+                                       ), ),
+                              fluidRow(column(12,
+                                              plotOutput("careerKDA")))
+                            ),
                             
                             tabPanel(
                               "Team Stats",

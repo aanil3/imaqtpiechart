@@ -2,11 +2,15 @@
 Personal project on data analysis on pro League of Legends games
 
 # Current stage/functionality
-This app currently features a semi-functional UI with a working table and filters that let you find your favorite pro player's stats
+This is a multi-page app that currently shows a KDA leaderboard (Bar Graph), a table with filtering and sorting mechanisms, histogram to compare the quantity of players with different bins of KDA values and a line graph to showcase each player's individual growth across tournaments/seasons.
 
 # To do List:
 In the future I would like to improve the UI, work on more visualization and fix the following errors
-- Make KP % (label_percent() not working atm)
+- Fix Histogram bin quantity #
+- Allow user to select leagues for individual career graphs
+- Add a career dataframe to keep track of career stats
+- Convert DB to SQLite
 - More graphs and data visualization
-- Potentially use maps to highlights regions (?)
 - Sidebar to introduce team and champ based sections
+- Create a prediction model for games
+- Add different stat types for career line graph (Career totals, Career averages, etc.)
