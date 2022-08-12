@@ -13,7 +13,9 @@ library(scales)
 library(av)
 library(dplyr)
 library(stringr)
+library(ggiraph)
 
+`%!in%` <- Negate(`%in%`)
 loldf <- fread("data/imaqtpie_DB.csv")
 
 loldata <- loldf %>%
@@ -34,26 +36,35 @@ loldata <- loldf %>%
   mutate(
     kda = (sum(kills) + sum(assists)) / sum(deaths),
     kp = ((sum(kills) + sum(assists)) / sum(teamkills)),
+    cspm = mean(cspm),
     games_played = n(),
     ckpm = sum(ckpm) / games_played,
     dpm = mean(dpm),
+    dtpm = mean(damagetakenperminute),
     damageshare = mean(damageshare),
     vspm = mean(vspm),
+    wpm = mean(wpm),
+    wcpm = mean(wcpm),
     cspm = mean(cspm),
     golddiffat15 = mean(golddiffat15),
     xpdiffat15 = mean(xpdiffat15),
     csdiffat15 = mean(csdiffat15),
-    kills = sum(kills),
-    deaths = sum(deaths),
-    assists = sum(assists),
+    total_kills = sum(kills),
+    total_deaths = sum(deaths),
+    total_assists = sum(assists),
+    avg_kills = mean(kills),
+    avg_deaths = mean(deaths),
+    avg_assists = mean(assists),
     season = year - 2010,
+    gpm = mean(`earned gpm`),
     year = case_when(
       league == "IEM" ~ year + 0.2,
       league == "MSI" ~ year + 0.4,
       split == "Summer" ~ year + 0.6,
       league == "WCS" ~ year + 0.8,
       TRUE ~ as.numeric(year)
-    )
+    ),
+    fbpct = mean(firstbloodkill+firstbloodassist)
   ) %>%
   filter(games_played >= 10) %>%
   mutate_at(
@@ -61,17 +72,25 @@ loldata <- loldf %>%
       season,
       kda,
       ckpm,
+      cspm,
       dpm,
+      dtpm,
       kp,
       vspm,
       cspm,
       golddiffat15,
+      gpm,
       xpdiffat15,
       csdiffat15,
       damageshare,
-      kills,
-      deaths,
-      assists
+      total_kills,
+      total_deaths,
+      total_assists,
+      avg_kills,
+      avg_deaths,
+      avg_assists,
+      wpm,
+      wcpm
     ),
     funs(round(., 2))
   ) %>%
@@ -82,6 +101,7 @@ loldata <- loldf %>%
     season,
     split,
     teamname,
+    cspm,
     league,
     position,
     games_played,
@@ -89,16 +109,24 @@ loldata <- loldf %>%
     kp,
     ckpm,
     dpm,
+    dtpm,
     damageshare,
     vspm,
     cspm,
     golddiffat15,
+    gpm,
     xpdiffat15,
     csdiffat15,
-    kills,
-    deaths,
-    assists,
-    year
+    total_kills,
+    total_deaths,
+    total_assists,
+    avg_kills,
+    avg_deaths,
+    avg_assists,
+    year,
+    fbpct,
+    wpm,
+    wcpm
   )
 loldata <- unique(loldata)
 
@@ -109,6 +137,151 @@ kda_df <- loldata %>%
   group_by(playername, league) %>%
   summarise(avg = mean(kda)) %>%
   arrange(desc(avg))
+
+careerFunct <- function(tempdata, statvalue) {
+  # "Totals",
+  # "CKPM",
+  # "First Blood",
+  # "KDA",
+  # "Damage",
+  # "Gold",
+  # "Farming",
+  # "Vision"
+  if (statvalue == "Totals"){
+    x <- ggplot(tempdata) +
+      geom_line(aes(x = year, y = avg_kills), color = "#35F2BD", size = 1) +
+      geom_line(aes(x = year, y = avg_deaths),
+                color = "red",
+                size = 1) +
+      geom_line(aes(x = year, y = avg_assists),
+                color = "#FFFFFF",
+                size = 1) +
+      geom_point(aes(x = year, y = avg_assists),
+                 color = "#FFFFFF",
+                 size = 5) +
+      geom_point(aes(x = year, y = avg_deaths),
+                 color = "red",
+                 size = 5) +
+      geom_point(aes(x = year, y = avg_kills), color = "#35F2BD", size = 5) +
+      theme_dark(base_size = 15) +
+      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
+      theme(panel.background = element_rect(fill = "#262626")) +
+      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
+      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
+      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
+      theme(axis.title = element_text(colour = "#FFFFFF")) +
+      xlim(2014, 2023)
+  }
+  if (statvalue == "CKPM"){
+    x <- ggplot(tempdata) +
+      geom_line(aes(x = year, y = ckpm), color = "#35F2BD", size = 1) +
+      geom_point(aes(x = year, y = ckpm), color = "#35F2BD", size = 5) +
+      theme_dark(base_size = 15) +
+      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
+      theme(panel.background = element_rect(fill = "#262626")) +
+      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
+      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
+      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
+      theme(axis.title = element_text(colour = "#FFFFFF")) +
+      xlim(2014, 2023)
+  }
+  if (statvalue == "First Blood"){
+    x <- ggplot(tempdata) +
+      geom_line(aes(x = year, y = fbpct), color = "#35F2BD", size = 1) +
+      geom_point(aes(x = year, y = fbpct), color = "#35F2BD", size = 5) +
+      theme_dark(base_size = 15) +
+      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
+      theme(panel.background = element_rect(fill = "#262626")) +
+      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
+      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
+      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
+      theme(axis.title = element_text(colour = "#FFFFFF")) +
+      xlim(2014, 2023)
+  }
+  if (statvalue == "First Blood"){
+    x <- ggplot(tempdata) +
+      geom_line(aes(x = year, y = fbpct), color = "#35F2BD", size = 1) +
+      geom_point(aes(x = year, y = fbpct), color = "#35F2BD", size = 5) +
+      theme_dark(base_size = 15) +
+      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
+      theme(panel.background = element_rect(fill = "#262626")) +
+      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
+      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
+      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
+      theme(axis.title = element_text(colour = "#FFFFFF")) +
+      xlim(2014, 2023)
+  }
+  if (statvalue == "KDA"){
+    x <- ggplot(tempdata) +
+      geom_line(aes(x = year, y = kda), color = "#35F2BD", size = 1) +
+      geom_point(aes(x = year, y = kda), color = "#35F2BD", size = 5) +
+      theme_dark(base_size = 15) +
+      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
+      theme(panel.background = element_rect(fill = "#262626")) +
+      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
+      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
+      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
+      theme(axis.title = element_text(colour = "#FFFFFF")) +
+      xlim(2014, 2023)
+  }
+  if (statvalue == "Damage"){
+    x <- ggplot(tempdata) +
+      geom_line(aes(x = year, y = dpm), color = "#35F2BD", size = 1) +
+      geom_point(aes(x = year, y = dpm), color = "#35F2BD", size = 5) +
+      geom_line(aes(x = year, y = dtpm), color = "red", size = 1) +
+      geom_point(aes(x = year, y = dtpm), color = "red", size = 5) +
+      theme_dark(base_size = 15) +
+      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
+      theme(panel.background = element_rect(fill = "#262626")) +
+      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
+      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
+      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
+      theme(axis.title = element_text(colour = "#FFFFFF")) +
+      xlim(2014, 2023)
+  }
+  if (statvalue == "Gold"){
+    x <- ggplot(tempdata) +
+      geom_line(aes(x = year, y = gpm), color = "#35F2BD", size = 1) +
+      geom_point(aes(x = year, y = gpm), color = "#35F2BD", size = 5) +
+      theme_dark(base_size = 15) +
+      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
+      theme(panel.background = element_rect(fill = "#262626")) +
+      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
+      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
+      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
+      theme(axis.title = element_text(colour = "#FFFFFF")) +
+      xlim(2014, 2023)
+  }
+  if (statvalue == "Farming"){
+    x <- ggplot(tempdata) +
+      geom_line(aes(x = year, y = cspm), color = "#35F2BD", size = 1) +
+      geom_point(aes(x = year, y = cspm), color = "#35F2BD", size = 5) +
+      theme_dark(base_size = 15) +
+      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
+      theme(panel.background = element_rect(fill = "#262626")) +
+      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
+      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
+      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
+      theme(axis.title = element_text(colour = "#FFFFFF")) +
+      xlim(2014, 2023)
+  }
+  if (statvalue == "Vision"){
+    x <- ggplot(tempdata) +
+      geom_line(aes(x = year, y = wpm), color = "#35F2BD", size = 1) +
+      geom_point(aes(x = year, y = wpm), color = "#35F2BD", size = 5) +
+      geom_line(aes(x = year, y = wcpm), color = "red", size = 1) +
+      geom_point(aes(x = year, y = wcpm), color = "red", size = 5) +
+      theme_dark(base_size = 15) +
+      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
+      theme(panel.background = element_rect(fill = "#262626")) +
+      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
+      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
+      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
+      theme(axis.title = element_text(colour = "#FFFFFF")) +
+      xlim(2014, 2023)
+  }
+  print(x)
+}
 
 server <- function(input, output) {
   fig.height = 100
@@ -232,24 +405,17 @@ server <- function(input, output) {
   output$careerKDA <- renderPlot({
     tempdata <- loldata %>%
       filter(playername == input$playername)
-    if (input$kdaHistoryFormat != "All") {
-      tempdata <- filter(tempdata, league == input$kdaHistoryFormat)
+    if (input$kdaHistoryFormat == "League") {
+      tempdata <-
+        filter(tempdata, league %in% c('LCS', 'LPL', 'LEC', 'LCK'))
     }
-    ggplot(tempdata) +
-      geom_line(aes(x = year, y = kills), color = "#35F2BD", size = 1) +
-      geom_line(aes(x = year, y = deaths), color = "red", size = 1) +
-      geom_line(aes(x = year, y = assists), color = "#7A5FD9", size = 1) +
-      geom_point(aes(x = year, y = assists), color = "#7A5FD9", size = 5) +
-      geom_point(aes(x = year, y = deaths), color = "red", size = 5) +
-      geom_point(aes(x = year, y = kills), color = "#35F2BD", size = 5) +
-      theme_dark(base_size = 15) +
-      theme(plot.background = element_rect(fill = "#262626", color = "white")) +
-      theme(panel.background = element_rect(fill = "#262626")) +
-      theme(plot.title = element_text(hjust = 0.5, color = "#FFFFFF")) +
-      theme(axis.text.x = element_text(colour = "#FFFFFF")) +
-      theme(axis.text.y = element_text(colour = "#FFFFFF")) +
-      theme(axis.title = element_text(colour = "#FFFFFF")) +
-      xlim(2014, 2023)
+    if (input$kdaHistoryFormat == "Tournament") {
+      tempdata <-
+        filter(tempdata, league %!in% c('LCS', 'LPL', 'LEC', 'LCK'))
+    }
+    
+    careerFunct(tempdata, input$Stat)
+    
   })
   
 }
@@ -347,22 +513,36 @@ ui <- bootstrapPage(title = 'IMAQTPIECHART',
                                 ),
                                 plotOutput("histogram")
                               )),
-                              fluidRow(class = "toprow",
-                                       column(
-                                         6,
-                                         selectInput(
-                                           inputId = "playername",
-                                           label = "Choose a player",
-                                           choices = unique(loldata$playername)
-                                         )
-                                       ),
-                                       column(
-                                         6, selectInput(
-                                           "kdaHistoryFormat",
-                                           "Formats",
-                                           c("All", "League", "Tournament")
-                                         )
-                                       ), ),
+                              fluidRow(
+                                class = "toprow",
+                                column(
+                                  4,
+                                  selectInput(
+                                    inputId = "playername",
+                                    label = "Choose a player",
+                                    choices = unique(loldata$playername)
+                                  )
+                                ),
+                                column(4, selectInput(
+                                  "kdaHistoryFormat",
+                                  "Formats",
+                                  c("All", "League", "Tournament")
+                                )),
+                                column(4, selectInput(
+                                  "Stat",
+                                  "Stats",
+                                  c(
+                                    "Totals",
+                                    "CKPM",
+                                    "First Blood",
+                                    "KDA",
+                                    "Damage",
+                                    "Gold",
+                                    "Farming",
+                                    "Vision"
+                                  )
+                                )),
+                              ),
                               fluidRow(column(12,
                                               plotOutput("careerKDA")))
                             ),
